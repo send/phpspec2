@@ -14,6 +14,7 @@ class LazyObject implements LazySubjectInterface
     private $arguments;
     private $presenter;
     private $instance;
+    private $instantiatorName;
 
     public function __construct($classname = null, array $arguments = array(),
                                 PresenterInterface $presenter)
@@ -21,6 +22,16 @@ class LazyObject implements LazySubjectInterface
         $this->classname = $classname;
         $this->arguments = $arguments;
         $this->presenter = $presenter;
+    }
+
+    public function getInstantiatorName()
+    {
+        return $this->instantiatorName;
+    }
+
+    public function setInstantiatorName($instantiatorName)
+    {
+        $this->instantiatorName = $instantiatorName;
     }
 
     public function setClassname($classname)
@@ -63,6 +74,25 @@ class LazyObject implements LazySubjectInterface
         }
 
         $reflection = new ReflectionClass($this->classname);
+        if (
+            !!($this->instantiatorName)
+            && $reflection->hasMethod($this->instantiatorName)
+            && !!($constructor = $reflection->getConstructor())
+            && !($constructor->isPublic())
+        ) {
+            $method = $reflection->getMethod($this->instantiatorName);
+            if (!$method->isPublic() && !$method->isStatic()) {
+                throw new MethodNotFoundException(sprintf(
+                    'Class %s does not have instantiator: %s.',
+                    $this->presenter->presentString($this->classname),
+                    $this->presenter->presentString($this->instantiatorName)
+                ), $this->classname, $this->instantiatorName, $this->arguments);
+            }
+            if (empty($this->arguments)) {
+                return $this->instance = $method->invoke(null);
+            }
+            return $this->instance = $method->invokeArgs(null, $this->arguments);
+        }
 
         if (!empty($this->arguments)) {
             return $this->instance = $reflection->newInstanceArgs($this->arguments);

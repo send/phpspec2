@@ -56,6 +56,23 @@ class ObjectProphet implements ArrayAccess, ProphetInterface
         $this->subject->setConstructorArguments($this->unwrapper->unwrapAll($constructorArguments));
     }
 
+    public function beSingleton($instantiatorName = 'getInstance')
+    {
+        if (null === $this->subject) {
+            throw new BehaviorException(
+                'You can not set object arguments. Behavior subject is null.'
+            );
+        }
+
+        if (!$this->subject instanceof LazySubjectInterface) {
+            throw new BehaviorException(
+                'You can not set object arguments. Behavior subject is already initialized.'
+            );
+        }
+
+        $this->subject->setInstantiatorName($instantiatorName);
+    }
+
     public function beConstructedWith()
     {
         if (null === $this->subject) {
